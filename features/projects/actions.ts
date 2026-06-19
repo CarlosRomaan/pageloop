@@ -1,5 +1,12 @@
 "use server";
 
+import { redirect } from "next/navigation";
+
+import {
+  createWidgetPublicKey,
+  createWidgetSecretKey,
+} from "@/lib/project-keys";
+import { createSlug } from "@/lib/slug";
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
@@ -112,4 +119,50 @@ export const removeProjectDomain = async ({
 
   revalidatePath(`/projects/${projectSlug}/settings`);
   revalidatePath(`/projects/${projectSlug}/installation`);
+};
+
+export const createProject = async ({
+  workspaceId,
+  name,
+  description,
+  domain,
+}: {
+  workspaceId: string;
+  name: string;
+  description?: string;
+  domain: string;
+}) => {
+  const cleanName = name.trim();
+  const cleanDomain = domain
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
+
+  if (!cleanName || !cleanDomain) {
+    return;
+  }
+
+  const slug = createSlug(cleanName);
+
+  const project = await prisma.project.create({
+    data: {
+      workspaceId,
+      name: cleanName,
+      slug,
+      description: description?.trim() || null,
+      widgetPublicKey: createWidgetPublicKey(),
+      widgetSecretKey: createWidgetSecretKey(),
+      domains: {
+        create: {
+          domain: cleanDomain,
+          isVerified: false,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
+
+  redirect(`/projects/${project.slug}`);
 };

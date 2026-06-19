@@ -275,3 +275,17 @@ export const getProjectSettings = async (projectSlug: string) => {
     domains: project.domains,
   };
 };
+
+export const getProjects = async () => {
+  const projects = await prisma.project.findMany({
+    orderBy: {
+      updatedAt: "desc",
+    },
+    include: {
+      domains: true,
+      comments: true,
+    },
+  });
+
+  return projects;
+};

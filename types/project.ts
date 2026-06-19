@@ -55,3 +55,10 @@ export type ProjectTeamMemberItem = Prisma.ProjectMemberGetPayload<{
     user: true;
   };
 }>;
+
+export type ProjectListItem = Prisma.ProjectGetPayload<{
+  include: {
+    domains: true;
+    comments: true;
+  };
+}>;
