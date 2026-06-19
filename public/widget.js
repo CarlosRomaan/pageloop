@@ -16,6 +16,8 @@
     isOpen: false,
     isCommentMode: false,
     selectedComment: null,
+    showResolved: false,
+    isCommentsListOpen: false,
   };
 
   const styles = document.createElement("style");
@@ -324,6 +326,69 @@
       padding: 0 10px;
       font-size: 13px;
     }
+
+    .pl-marker-open {
+      background: #fffbeb;
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .pl-marker-in-progress {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1e40af;
+    }
+
+    .pl-marker-in-review {
+      background: #f5f3ff;
+      border-color: #8b5cf6;
+      color: #6d28d9;
+    }
+
+    .pl-marker-resolved {
+      background: #f0fdf4;
+      border-color: #22c55e;
+      color: #166534;
+    }
+
+    .pl-comments-list {
+      margin-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
+    }
+
+    .pl-comments-list-item {
+      width: 100%;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: left;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .pl-comments-list-item:hover {
+      background: #f9fafb;
+    }
+
+    .pl-comments-list-number {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+    }
+
+    .pl-comments-list-message {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #111827;
+      line-height: 1.4;
+    }
+
+    .pl-marker-selected {
+      outline: 3px solid rgba(37, 99, 235, 0.25);
+      transform: scale(1.08);
+    }
   `;
 
   document.head.appendChild(styles);
@@ -523,6 +588,7 @@
       .addEventListener("click", () => {
         state.selectedComment = null;
         sidebar.remove();
+        renderMarkers();
       });
 
     const statusSelect = sidebar.querySelector(".pl-status-control select");
@@ -608,19 +674,39 @@
     return data.reply;
   };
 
+  const getMarkerStatusClassName = (status) => {
+    const classes = {
+      OPEN: "pl-marker-open",
+      IN_PROGRESS: "pl-marker-in-progress",
+      IN_REVIEW: "pl-marker-in-review",
+      RESOLVED: "pl-marker-resolved",
+    };
+
+    return classes[status] || "pl-marker-open";
+  };
+
   const renderMarkers = () => {
     document.querySelectorAll(".pl-marker").forEach((marker) => {
       marker.remove();
     });
 
     state.comments.forEach((comment) => {
+      if (comment.status === "RESOLVED" && !state.showResolved) {
+        return;
+      }
+
       if (!comment.position) {
         return;
       }
 
       const marker = document.createElement("button");
-      marker.className = "pl-marker";
-      marker.innerText = `💬 ${comment.number}`;
+      marker.className = `pl-marker ${getMarkerStatusClassName(comment.status)} ${state.selectedComment?.id === comment.id ? "pl-marker-selected" : ""
+        }`;
+
+      marker.innerText =
+        comment.status === "RESOLVED"
+          ? `✓ ${comment.number}`
+          : `💬 ${comment.number}`;
 
       marker.style.left = `${comment.position.x}px`;
       marker.style.top = `${comment.position.y}px`;
@@ -629,6 +715,8 @@
         event.stopPropagation();
 
         state.selectedComment = comment;
+
+        renderMarkers();
         renderCommentSidebar(comment);
       });
 
@@ -711,7 +799,42 @@
     panel.innerHTML = `
       <div class="pl-panel-title">Feedback Mode</div>
       <button class="pl-panel-button" type="button" data-action="add-comment">+ Add Comment</button>
-      <button class="pl-panel-button" type="button" data-action="view-comments">Comments (${state.comments.length})</button>
+      <button class="pl-panel-button" type="button" data-action="view-comments">
+        ${state.isCommentsListOpen ? "Hide comments" : `Comments (${state.comments.length})`}
+      </button>
+
+      ${state.isCommentsListOpen
+        ? `
+          <div class="pl-comments-list">
+            ${state.comments
+          .filter(
+            (comment) =>
+              state.showResolved || comment.status !== "RESOLVED"
+          )
+          .map(
+            (comment) => `
+                  <button
+                    class="pl-comments-list-item"
+                    data-comment-id="${comment.id}"
+                  >
+                    <div class="pl-comments-list-number">
+                      #${comment.number}
+                    </div>
+
+                    <div class="pl-comments-list-message">
+                      ${comment.message.slice(0, 80)}
+                    </div>
+                  </button>
+                `
+          )
+          .join("")}
+          </div>
+        `
+        : ""
+      }
+      <button class="pl-panel-button" type="button" data-action="toggle-resolved">
+        ${state.showResolved ? "Hide resolved" : "Show resolved"}
+      </button>
       <button class="pl-panel-button" type="button" data-action="close">Done Reviewing</button>
     `;
 
@@ -719,19 +842,47 @@
       enableCommentMode();
     });
 
-    panel.querySelector('[data-action="view-comments"]').addEventListener("click", () => {
-      alert(
-        state.comments.length
-          ? state.comments.map((comment) => `#${comment.number}: ${comment.message}`).join("\n\n")
-          : "No comments yet."
-      );
-    });
+    panel
+      .querySelector('[data-action="view-comments"]')
+      .addEventListener("click", () => {
+        state.isCommentsListOpen = !state.isCommentsListOpen;
+        renderPanel();
+      });
+
+    panel
+      .querySelector('[data-action="toggle-resolved"]')
+      .addEventListener("click", () => {
+        state.showResolved = !state.showResolved;
+        renderMarkers();
+        renderPanel();
+      });
 
     panel.querySelector('[data-action="close"]').addEventListener("click", () => {
       state.isOpen = false;
       disableCommentMode();
       renderPanel();
     });
+
+    panel
+      .querySelectorAll(".pl-comments-list-item")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          const commentId = button.dataset.commentId;
+
+          const comment = state.comments.find(
+            (item) => item.id === commentId
+          );
+
+          if (!comment) {
+            return;
+          }
+
+          state.selectedComment = comment;
+
+          renderMarkers();
+          renderCommentSidebar(comment);
+        });
+      });
 
     document.body.appendChild(panel);
   };
