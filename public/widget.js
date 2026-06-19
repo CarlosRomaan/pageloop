@@ -301,6 +301,29 @@
       font-weight: 600;
       cursor: pointer;
     }
+
+    .pl-status-control {
+      margin-bottom: 14px;
+    }
+
+    .pl-status-control label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .pl-status-control select {
+      width: 100%;
+      height: 38px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #111827;
+      border-radius: 10px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
   `;
 
   document.head.appendChild(styles);
@@ -406,6 +429,23 @@
     return classes[status] || "pl-status-open";
   };
 
+  const updateCommentStatus = async ({ commentId, status }) => {
+    const response = await fetch(`${apiBaseUrl}/api/widget/comments/${commentId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        widgetPublicKey,
+        status,
+      }),
+    });
+
+    const data = await response.json();
+
+    return data.comment;
+  };
+
   const renderCommentSidebar = (comment) => {
     document.querySelectorAll(".pl-comment-sidebar").forEach((sidebar) => {
       sidebar.remove();
@@ -448,9 +488,15 @@
     </div>
 
     <div class="pl-comment-sidebar-body">
-      <span class="pl-status-badge ${getStatusClassName(comment.status)}">
-        ${formatStatus(comment.status)}
-      </span>
+      <div class="pl-status-control">
+        <label>Status</label>
+        <select>
+          <option value="OPEN" ${comment.status === "OPEN" ? "selected" : ""}>Open</option>
+          <option value="IN_PROGRESS" ${comment.status === "IN_PROGRESS" ? "selected" : ""}>In Progress</option>
+          <option value="IN_REVIEW" ${comment.status === "IN_REVIEW" ? "selected" : ""}>In Review</option>
+          <option value="RESOLVED" ${comment.status === "RESOLVED" ? "selected" : ""}>Resolved</option>
+        </select>
+      </div>
 
       <p class="pl-comment-message">
         ${comment.message}
@@ -478,6 +524,37 @@
         state.selectedComment = null;
         sidebar.remove();
       });
+
+    const statusSelect = sidebar.querySelector(".pl-status-control select");
+
+    statusSelect.addEventListener("change", async (event) => {
+      const nextStatus = event.target.value;
+
+      statusSelect.disabled = true;
+
+      try {
+        const updatedComment = await updateCommentStatus({
+          commentId: comment.id,
+          status: nextStatus,
+        });
+
+        const commentIndex = state.comments.findIndex(
+          (stateComment) => stateComment.id === updatedComment.id
+        );
+
+        if (commentIndex >= 0) {
+          state.comments[commentIndex] = updatedComment;
+        }
+
+        state.selectedComment = updatedComment;
+
+        renderMarkers();
+        renderCommentSidebar(updatedComment);
+      } catch (error) {
+        console.error("[PageLoop Status]", error);
+        statusSelect.disabled = false;
+      }
+    });
 
     const replyTextarea = sidebar.querySelector(".pl-reply-form textarea");
     const replyButton = sidebar.querySelector(".pl-reply-form button");
