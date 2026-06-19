@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acme Website</title>
+
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        color: #111827;
+        background: #ffffff;
+      }
+
+      header {
+        padding: 24px 64px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      nav {
+        display: flex;
+        gap: 24px;
+        color: #6b7280;
+        font-size: 14px;
+      }
+
+      main {
+        padding: 96px 64px;
+      }
+
+      .hero {
+        max-width: 880px;
+      }
+
+      h1 {
+        font-size: 64px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        margin: 0;
+      }
+
+      p {
+        margin-top: 24px;
+        font-size: 20px;
+        line-height: 1.6;
+        color: #6b7280;
+        max-width: 640px;
+      }
+
+      .cta {
+        margin-top: 32px;
+        display: inline-flex;
+        border-radius: 999px;
+        background: #2563eb;
+        color: #ffffff;
+        padding: 14px 22px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .cards {
+        margin-top: 96px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 32px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <strong>Acme</strong>
+
+      <nav>
+        <span>Product</span>
+        <span>Pricing</span>
+        <span>Contact</span>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="hero">
+        <h1>Launch your next website faster.</h1>
+
+        <p>
+          Acme helps teams design, build, and launch beautiful marketing sites
+          with less friction.
+        </p>
+
+        <a href="#" class="cta">Get Started</a>
+      </section>
+
+      <section class="cards">
+        <article class="card">
+          <h2>Design</h2>
+          <p>Create beautiful interfaces with reusable systems.</p>
+        </article>
+
+        <article class="card">
+          <h2>Build</h2>
+          <p>Ship production-ready pages faster with your team.</p>
+        </article>
+
+        <article class="card">
+          <h2>Review</h2>
+          <p>Collect feedback and approvals in one place.</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="/widget.js" data-project="pl_pub_9773028d6ab3f3783a362992197d6808">
+    </script>
+</body>
+
+</html>

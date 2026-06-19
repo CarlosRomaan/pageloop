@@ -47,7 +47,10 @@ export const POST = async (request: Request) => {
       (projectDomain) => projectDomain.domain === domain
     );
 
-    if (!allowedDomain) {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const isLocalhost = domain === "localhost";
+
+    if (!allowedDomain && !(isDevelopment && isLocalhost)) {
       return NextResponse.json(
         { error: "Domain is not allowed for this project." },
         { status: 403 }
@@ -64,15 +67,17 @@ export const POST = async (request: Request) => {
       },
     });
 
-    await prisma.projectDomain.update({
-      where: {
-        id: allowedDomain.id,
-      },
-      data: {
-        isVerified: true,
-        lastDetectedAt: new Date(),
-      },
-    });
+    if (allowedDomain) {
+      await prisma.projectDomain.update({
+        where: {
+          id: allowedDomain.id,
+        },
+        data: {
+          isVerified: true,
+          lastDetectedAt: new Date(),
+        },
+      });
+    }
 
     const page = await prisma.page.upsert({
       where: {
