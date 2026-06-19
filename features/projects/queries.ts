@@ -228,3 +228,50 @@ export const getProjectInstallation = async (projectSlug: string) => {
     domains: project.domains,
   };
 };
+
+export const getProjectTeam = async (projectSlug: string) => {
+  const project = await prisma.project.findFirst({
+    where: {
+      slug: projectSlug,
+    },
+    include: {
+      members: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    notFound();
+  }
+
+  return {
+    project,
+    members: project.members,
+  };
+};
+
+export const getProjectSettings = async (projectSlug: string) => {
+  const project = await prisma.project.findFirst({
+    where: {
+      slug: projectSlug,
+    },
+    include: {
+      domains: true,
+    },
+  });
+
+  if (!project) {
+    notFound();
+  }
+
+  return {
+    project,
+    domains: project.domains,
+  };
+};

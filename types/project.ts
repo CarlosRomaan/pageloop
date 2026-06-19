@@ -49,3 +49,9 @@ export type ProjectPageItem = Prisma.PageGetPayload<{
     comments: true;
   };
 }>;
+
+export type ProjectTeamMemberItem = Prisma.ProjectMemberGetPayload<{
+  include: {
+    user: true;
+  };
+}>;
