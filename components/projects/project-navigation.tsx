@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 
 type ProjectNavigationProps = {
   projectSlug: string;
+  canManageProject: boolean;
 };
 
-const navigation = [
+const baseNavigation = [
   {
     label: "Overview",
     href: "",
@@ -20,6 +21,9 @@ const navigation = [
     label: "Pages",
     href: "/pages",
   },
+];
+
+const adminNavigation = [
   {
     label: "Team",
     href: "/team",
@@ -36,8 +40,13 @@ const navigation = [
 
 const ProjectNavigation = ({
   projectSlug,
+  canManageProject,
 }: ProjectNavigationProps) => {
   const pathname = usePathname();
+
+  const navigation = canManageProject
+    ? [...baseNavigation, ...adminNavigation]
+    : baseNavigation;
 
   return (
     <div className="border-b">

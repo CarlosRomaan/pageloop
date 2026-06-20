@@ -4,6 +4,7 @@ import ProjectNavigation from "@/components/projects/project-navigation";
 import ProjectCommentsFilters from "@/components/projects/project-comments-filters";
 import ProjectCommentsTable from "@/components/projects/project-comments-table";
 import { getProjectComments } from "@/features/projects/queries";
+import { getCurrentProjectMemberOrThrow } from "@/lib/project-permissions";
 
 const ProjectCommentsPage = async ({
   params,
@@ -14,6 +15,8 @@ const ProjectCommentsPage = async ({
 
   const { project, comments, pages, members } =
     await getProjectComments(projectSlug, filters);
+
+  const member = await getCurrentProjectMemberOrThrow(project.id);
 
   return (
     <div className="space-y-6">
@@ -31,7 +34,10 @@ const ProjectCommentsPage = async ({
         </p>
       </div>
 
-      <ProjectNavigation projectSlug={project.slug} />
+      <ProjectNavigation 
+        projectSlug={project.slug} 
+        canManageProject={member.role === "ADMIN"}
+      />
 
       <ProjectCommentsFilters
         projectSlug={project.slug}

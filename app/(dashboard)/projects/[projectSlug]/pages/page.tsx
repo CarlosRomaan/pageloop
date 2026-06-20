@@ -2,6 +2,7 @@ import ProjectNavigation from "@/components/projects/project-navigation";
 import ProjectPagesTable from "@/components/projects/project-pages-table";
 import { getProjectPages } from "@/features/projects/queries";
 import ProjectPagesMetrics from "@/components/projects/project-pages-metrics";
+import { getCurrentProjectMemberOrThrow } from "@/lib/project-permissions";
 
 type ProjectPagesPageProps = {
   params: Promise<{
@@ -13,6 +14,8 @@ const ProjectPagesPage = async ({ params }: ProjectPagesPageProps) => {
   const { projectSlug } = await params;
 
   const { project, pages } = await getProjectPages(projectSlug);
+
+  const member = await getCurrentProjectMemberOrThrow(project.id);
 
   return (
     <div className="space-y-6">
@@ -30,7 +33,10 @@ const ProjectPagesPage = async ({ params }: ProjectPagesPageProps) => {
         </p>
       </div>
 
-      <ProjectNavigation projectSlug={project.slug} />
+      <ProjectNavigation 
+        projectSlug={project.slug} 
+        canManageProject={member.role === "ADMIN"}
+      />
 
       <ProjectPagesMetrics pages={pages} />
 

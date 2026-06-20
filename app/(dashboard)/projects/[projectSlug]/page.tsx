@@ -6,6 +6,7 @@ import ProjectActivityCard from "@/components/projects/project-activity-card";
 import { getProjectOverview } from "@/features/projects/queries";
 import { ProjectOverviewPageProps } from "@/types/dashboard";
 import ProjectNavigation from "@/components/projects/project-navigation";
+import { getCurrentProjectMemberOrThrow } from "@/lib/project-permissions";
 
 const ProjectOverviewPage = async ({ params }: ProjectOverviewPageProps) => {
   const { projectSlug } = await params;
@@ -13,6 +14,8 @@ const ProjectOverviewPage = async ({ params }: ProjectOverviewPageProps) => {
   const { project, metrics } = await getProjectOverview(projectSlug);
 
   const primaryDomain = project.domains[0]?.domain;
+
+  const member = await getCurrentProjectMemberOrThrow(project.id);
 
   return (
     <div className="space-y-6">
@@ -24,6 +27,7 @@ const ProjectOverviewPage = async ({ params }: ProjectOverviewPageProps) => {
 
       <ProjectNavigation
         projectSlug={project.slug}
+        canManageProject={member.role === "ADMIN"}
       />
 
       <ProjectMetrics metrics={metrics} />

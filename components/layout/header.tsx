@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, HelpCircle, Search } from "lucide-react";
+import LogoutButton from "../auth/logout-button";
 
 const DashboardHeader = () => {
   return (
@@ -46,6 +47,8 @@ const DashboardHeader = () => {
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium">
           SJ
         </div>
+
+        <LogoutButton />
       </div>
     </header>
   );

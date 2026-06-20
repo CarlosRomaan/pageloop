@@ -40,7 +40,10 @@ const ProjectInstallationPage = async ({
         </p>
       </div>
 
-      <ProjectNavigation projectSlug={project.slug} />
+      <ProjectNavigation
+        projectSlug={project.slug}
+        canManageProject={member.role === "ADMIN"}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <InstallationScriptCard widgetPublicKey={project.widgetPublicKey} />

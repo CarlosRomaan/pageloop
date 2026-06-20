@@ -20,6 +20,7 @@ const ProjectTeamPage = async ({ params }: ProjectTeamPageProps) => {
 
   const member = await getCurrentProjectMemberOrThrow(project.id);
 
+
   if (!canAccessProjectSettings(member.role)) {
     notFound();
   }
@@ -40,7 +41,10 @@ const ProjectTeamPage = async ({ params }: ProjectTeamPageProps) => {
         </p>
       </div>
 
-      <ProjectNavigation projectSlug={project.slug} />
+      <ProjectNavigation 
+        projectSlug={project.slug} 
+        canManageProject={member.role === "ADMIN"}
+      />
 
       <ProjectInviteForm
         projectId={project.id}
