@@ -3,7 +3,16 @@ import Link from "next/link";
 import ProjectsTable from "@/components/projects/projects-table";
 import { getProjects } from "@/features/projects/queries";
 
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+
 const ProjectsPage = async () => {
+  const session = await auth();
+
+  if (!session) {
+    redirect("/login");
+  }
+  
   const projects = await getProjects();
 
   return (

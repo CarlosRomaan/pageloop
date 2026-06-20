@@ -2,17 +2,12 @@
 
 import { createProject } from "@/features/projects/actions";
 
-type CreateProjectFormProps = {
-  workspaceId: string;
-};
-
-const CreateProjectForm = ({ workspaceId }: CreateProjectFormProps) => {
+const CreateProjectForm = () => {
   return (
     <form
       className="space-y-5"
       action={(formData) => {
         createProject({
-          workspaceId,
           name: String(formData.get("name") ?? ""),
           description: String(formData.get("description") ?? ""),
           domain: String(formData.get("domain") ?? ""),

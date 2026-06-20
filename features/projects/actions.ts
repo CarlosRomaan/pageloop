@@ -8,8 +8,10 @@ import {
 } from "@/lib/project-keys";
 import { createSlug } from "@/lib/slug";
 import { revalidatePath } from "next/cache";
-
 import { prisma } from "@/lib/prisma";
+
+import { getProjectForCurrentWorkspaceOrThrow } from "@/lib/project-access";
+import { getCurrentWorkspaceOrThrow } from "@/lib/current-workspace-or-throw";
 
 export const updateProjectSettings = async ({
   projectId,
@@ -22,13 +24,15 @@ export const updateProjectSettings = async ({
   name: string;
   description?: string;
 }) => {
+  const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+
   if (!name.trim()) {
     return;
   }
 
   await prisma.project.update({
     where: {
-      id: projectId,
+      id: project.id,
     },
     data: {
       name: name.trim(),
@@ -47,21 +51,13 @@ export const toggleProjectArchiveStatus = async ({
   projectId: string;
   projectSlug: string;
 }) => {
-  const project = await prisma.project.findUnique({
-    where: {
-      id: projectId,
-    },
-  });
-
-  if (!project) {
-    return;
-  }
+  const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
 
   const isArchived = project.status === "ARCHIVED";
 
   await prisma.project.update({
     where: {
-      id: projectId,
+      id: project.id,
     },
     data: {
       status: isArchived ? "ACTIVE" : "ARCHIVED",
@@ -83,6 +79,8 @@ export const addProjectDomain = async ({
   projectSlug: string;
   domain: string;
 }) => {
+  const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+
   const cleanDomain = domain
     .trim()
     .replace(/^https?:\/\//, "")
@@ -94,7 +92,7 @@ export const addProjectDomain = async ({
 
   await prisma.projectDomain.create({
     data: {
-      projectId,
+      projectId: project.id,
       domain: cleanDomain,
       isVerified: false,
     },
@@ -111,9 +109,28 @@ export const removeProjectDomain = async ({
   domainId: string;
   projectSlug: string;
 }) => {
-  await prisma.projectDomain.delete({
+  const workspace = await getCurrentWorkspaceOrThrow();
+
+  if (!workspace) {
+    return;
+  }
+
+  const domain = await prisma.projectDomain.findFirst({
     where: {
       id: domainId,
+      project: {
+        workspaceId: workspace.id,
+      },
+    },
+  });
+
+  if (!domain) {
+    return;
+  }
+
+  await prisma.projectDomain.delete({
+    where: {
+      id: domain.id,
     },
   });
 
@@ -122,16 +139,16 @@ export const removeProjectDomain = async ({
 };
 
 export const createProject = async ({
-  workspaceId,
   name,
   description,
   domain,
 }: {
-  workspaceId: string;
   name: string;
   description?: string;
   domain: string;
 }) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const cleanName = name.trim();
   const cleanDomain = domain
     .trim()
@@ -146,7 +163,7 @@ export const createProject = async ({
 
   const project = await prisma.project.create({
     data: {
-      workspaceId,
+      workspaceId: workspace.id,
       name: cleanName,
       slug,
       description: description?.trim() || null,

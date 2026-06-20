@@ -1,10 +1,15 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+
 import type { CommentStatus } from "@prisma/client";
+import { getCurrentWorkspaceOrThrow } from "@/lib/current-workspace-or-throw";
 
 export const getProjectOverview = async (projectSlug: string) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const project = await prisma.project.findFirst({
     where: {
+      workspaceId: workspace.id,
       slug: projectSlug,
     },
     include: {
@@ -76,8 +81,11 @@ export const getProjectComments = async (
   projectSlug: string,
   filters?: GetProjectCommentsFilters
 ) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const project = await prisma.project.findFirst({
     where: {
+      workspaceId: workspace.id,
       slug: projectSlug,
     },
     include: {
@@ -125,8 +133,11 @@ export const getProjectCommentDetail = async (
   projectSlug: string,
   commentId: string
 ) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const project = await prisma.project.findFirst({
     where: {
+      workspaceId: workspace.id,
       slug: projectSlug,
     },
     include: {
@@ -183,8 +194,11 @@ export const getProjectCommentDetail = async (
 };
 
 export const getProjectPages = async (projectSlug: string) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const project = await prisma.project.findFirst({
     where: {
+      workspaceId: workspace.id,
       slug: projectSlug,
     },
     include: {
@@ -210,8 +224,11 @@ export const getProjectPages = async (projectSlug: string) => {
 };
 
 export const getProjectInstallation = async (projectSlug: string) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const project = await prisma.project.findFirst({
     where: {
+      workspaceId: workspace.id,
       slug: projectSlug,
     },
     include: {
@@ -230,8 +247,11 @@ export const getProjectInstallation = async (projectSlug: string) => {
 };
 
 export const getProjectTeam = async (projectSlug: string) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const project = await prisma.project.findFirst({
     where: {
+      workspaceId: workspace.id,
       slug: projectSlug,
     },
     include: {
@@ -257,8 +277,11 @@ export const getProjectTeam = async (projectSlug: string) => {
 };
 
 export const getProjectSettings = async (projectSlug: string) => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const project = await prisma.project.findFirst({
     where: {
+      workspaceId: workspace.id,
       slug: projectSlug,
     },
     include: {
@@ -277,7 +300,12 @@ export const getProjectSettings = async (projectSlug: string) => {
 };
 
 export const getProjects = async () => {
-  const projects = await prisma.project.findMany({
+  const workspace = await getCurrentWorkspaceOrThrow();
+
+  return prisma.project.findMany({
+    where: {
+      workspaceId: workspace.id,
+    },
     orderBy: {
       updatedAt: "desc",
     },
@@ -286,6 +314,4 @@ export const getProjects = async () => {
       comments: true,
     },
   });
-
-  return projects;
 };

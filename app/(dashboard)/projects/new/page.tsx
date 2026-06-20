@@ -3,13 +3,8 @@ import { notFound } from "next/navigation";
 import CreateProjectForm from "@/components/projects/create-project-form";
 import { getDefaultWorkspace } from "@/features/workspaces/queries";
 
+
 const NewProjectPage = async () => {
-  const workspace = await getDefaultWorkspace();
-
-  if (!workspace) {
-    notFound();
-  }
-
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
@@ -27,7 +22,7 @@ const NewProjectPage = async () => {
       </div>
 
       <div className="rounded-xl border bg-background p-5">
-        <CreateProjectForm workspaceId={workspace.id} />
+        <CreateProjectForm />
       </div>
     </div>
   );
