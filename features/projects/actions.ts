@@ -13,6 +13,10 @@ import { prisma } from "@/lib/prisma";
 import { getProjectForCurrentWorkspaceOrThrow } from "@/lib/project-access";
 import { getCurrentWorkspaceOrThrow } from "@/lib/current-workspace-or-throw";
 
+import type { ProjectRole } from "@prisma/client";
+import { createInviteToken } from "@/lib/invite-token";
+import { getCurrentUser } from "@/lib/current-user";
+
 export const updateProjectSettings = async ({
   projectId,
   projectSlug,
@@ -182,4 +186,111 @@ export const createProject = async ({
   revalidatePath("/projects");
 
   redirect(`/projects/${project.slug}`);
+};
+
+export const createProjectInvite = async ({
+  projectId,
+  projectSlug,
+  email,
+  role,
+}: {
+  projectId: string;
+  projectSlug: string;
+  email: string;
+  role: ProjectRole;
+}) => {
+  const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (!cleanEmail) {
+    return;
+  }
+
+  await prisma.invite.create({
+    data: {
+      workspaceId: project.workspaceId,
+      projectId: project.id,
+      email: cleanEmail,
+      projectRole: role,
+      token: createInviteToken(),
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+    },
+  });
+
+  revalidatePath(`/projects/${projectSlug}/team`);
+};
+
+export const acceptProjectInvite = async ({
+  token,
+}: {
+  token: string;
+}) => {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect(`/login?callbackUrl=/accept-invite/${token}`);
+  }
+
+  const invite = await prisma.invite.findUnique({
+    where: {
+      token,
+    },
+    include: {
+      project: true,
+    },
+  });
+
+  if (!invite || invite.acceptedAt || invite.expiresAt < new Date()) {
+    return;
+  }
+
+  await prisma.workspaceMember.upsert({
+    where: {
+      workspaceId_userId: {
+        workspaceId: invite.workspaceId,
+        userId: user.id,
+      },
+    },
+    create: {
+      workspaceId: invite.workspaceId,
+      userId: user.id,
+      role: invite.workspaceRole ?? "MEMBER",
+    },
+    update: {},
+  });
+
+  if (invite.projectId && invite.projectRole) {
+    await prisma.projectMember.upsert({
+      where: {
+        projectId_userId: {
+          projectId: invite.projectId,
+          userId: user.id,
+        },
+      },
+      create: {
+        projectId: invite.projectId,
+        userId: user.id,
+        role: invite.projectRole,
+      },
+      update: {
+        role: invite.projectRole,
+      },
+    });
+  }
+
+  await prisma.invite.update({
+    where: {
+      id: invite.id,
+    },
+    data: {
+      acceptedAt: new Date(),
+    },
+  });
+
+  if (invite.project) {
+    redirect(`/projects/${invite.project.slug}`);
+  }
+
+  redirect("/dashboard");
 };

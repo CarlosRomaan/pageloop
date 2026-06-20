@@ -263,6 +263,14 @@ export const getProjectTeam = async (projectSlug: string) => {
           user: true,
         },
       },
+      invites: {
+        where: {
+          acceptedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
     },
   });
 
@@ -273,6 +281,7 @@ export const getProjectTeam = async (projectSlug: string) => {
   return {
     project,
     members: project.members,
+    invites: project.invites,
   };
 };
 
@@ -314,4 +323,22 @@ export const getProjects = async () => {
       comments: true,
     },
   });
+};
+
+export const getInviteByToken = async (token: string) => {
+  const invite = await prisma.invite.findUnique({
+    where: {
+      token,
+    },
+    include: {
+      workspace: true,
+      project: true,
+    },
+  });
+
+  if (!invite) {
+    notFound();
+  }
+
+  return invite;
 };
