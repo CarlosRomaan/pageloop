@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  canManageProject,
+  getCurrentProjectMemberOrThrow,
+} from "@/lib/project-permissions";
 import { redirect } from "next/navigation";
 
 import {
@@ -29,6 +33,11 @@ export const updateProjectSettings = async ({
   description?: string;
 }) => {
   const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+  const member = await getCurrentProjectMemberOrThrow(project.id);
+
+  if (!canManageProject(member.role)) {
+    return;
+  }
 
   if (!name.trim()) {
     return;
@@ -56,6 +65,11 @@ export const toggleProjectArchiveStatus = async ({
   projectSlug: string;
 }) => {
   const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+  const member = await getCurrentProjectMemberOrThrow(project.id);
+
+  if (!canManageProject(member.role)) {
+    return;
+  }
 
   const isArchived = project.status === "ARCHIVED";
 
@@ -84,6 +98,11 @@ export const addProjectDomain = async ({
   domain: string;
 }) => {
   const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+  const member = await getCurrentProjectMemberOrThrow(project.id);
+
+  if (!canManageProject(member.role)) {
+    return;
+  }
 
   const cleanDomain = domain
     .trim()
@@ -115,10 +134,6 @@ export const removeProjectDomain = async ({
 }) => {
   const workspace = await getCurrentWorkspaceOrThrow();
 
-  if (!workspace) {
-    return;
-  }
-
   const domain = await prisma.projectDomain.findFirst({
     where: {
       id: domainId,
@@ -126,9 +141,18 @@ export const removeProjectDomain = async ({
         workspaceId: workspace.id,
       },
     },
+    include: {
+      project: true,
+    },
   });
 
   if (!domain) {
+    return;
+  }
+
+  const member = await getCurrentProjectMemberOrThrow(domain.project.id);
+
+  if (!canManageProject(member.role)) {
     return;
   }
 
@@ -200,6 +224,11 @@ export const createProjectInvite = async ({
   role: ProjectRole;
 }) => {
   const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+  const member = await getCurrentProjectMemberOrThrow(project.id);
+
+  if (!canManageProject(member.role)) {
+    return;
+  }
 
   const cleanEmail = email.trim().toLowerCase();
 

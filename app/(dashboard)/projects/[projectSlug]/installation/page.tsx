@@ -2,6 +2,8 @@ import InstallationScriptCard from "@/components/projects/installation-script-ca
 import InstallationStatusSummary from "@/components/projects/installation-status-summary";
 import ProjectNavigation from "@/components/projects/project-navigation";
 import { getProjectInstallation } from "@/features/projects/queries";
+import { canAccessProjectSettings, getCurrentProjectMemberOrThrow } from "@/lib/project-permissions";
+import { notFound } from "next/navigation";
 
 type ProjectInstallationPageProps = {
   params: Promise<{
@@ -15,6 +17,12 @@ const ProjectInstallationPage = async ({
   const { projectSlug } = await params;
 
   const { project, domains } = await getProjectInstallation(projectSlug);
+
+  const member = await getCurrentProjectMemberOrThrow(project.id);
+
+  if (!canAccessProjectSettings(member.role)) {
+    notFound();
+  }
 
   return (
     <div className="space-y-6">

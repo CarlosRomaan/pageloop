@@ -4,6 +4,9 @@ import ProjectSettingsForm from "@/components/projects/project-settings-form";
 import ProjectArchiveToggle from "@/components/projects/project-archive-toggle";
 import ProjectDomainsManager from "@/components/projects/project-domains-manager";
 
+import { canAccessProjectSettings, getCurrentProjectMemberOrThrow } from "@/lib/project-permissions";
+import { notFound } from "next/navigation";
+
 type ProjectSettingsPageProps = {
   params: Promise<{
     projectSlug: string;
@@ -16,6 +19,12 @@ const ProjectSettingsPage = async ({
   const { projectSlug } = await params;
 
   const { project, domains } = await getProjectSettings(projectSlug);
+
+  const member = await getCurrentProjectMemberOrThrow(project.id);
+
+  if (!canAccessProjectSettings(member.role)) {
+    notFound();
+  }
 
   return (
     <div className="space-y-6">

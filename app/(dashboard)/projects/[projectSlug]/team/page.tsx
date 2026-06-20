@@ -4,6 +4,8 @@ import { getProjectTeam } from "@/features/projects/queries";
 
 import ProjectInviteForm from "@/components/projects/project-invite-form";
 import ProjectPendingInvites from "@/components/projects/project-pending-invites";
+import { canAccessProjectSettings, getCurrentProjectMemberOrThrow } from "@/lib/project-permissions";
+import { notFound } from "next/navigation";
 
 type ProjectTeamPageProps = {
   params: Promise<{
@@ -15,6 +17,12 @@ const ProjectTeamPage = async ({ params }: ProjectTeamPageProps) => {
   const { projectSlug } = await params;
 
   const { project, members, invites } = await getProjectTeam(projectSlug);
+
+  const member = await getCurrentProjectMemberOrThrow(project.id);
+
+  if (!canAccessProjectSettings(member.role)) {
+    notFound();
+  }
 
   return (
     <div className="space-y-6">
