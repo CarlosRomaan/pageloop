@@ -20,7 +20,7 @@ const LoginPage = () => {
             "use server";
 
             await signIn("google", {
-              redirectTo: "/dashboard",
+              redirectTo: "/post-login",
             });
           }}
         >
