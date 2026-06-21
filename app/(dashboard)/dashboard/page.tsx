@@ -22,7 +22,8 @@ const DashboardPage = async () => {
         </h1>
 
         <p className="mt-2 text-muted-foreground">
-          Welcome back, Sarah. Here&apos;s what&apos;s happening with your projects.
+          Welcome back. Here&apos;s what&apos;s happening in{" "}
+          {dashboardData.workspace.name}.
         </p>
       </div>
 

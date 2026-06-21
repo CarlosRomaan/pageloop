@@ -1,6 +1,9 @@
+import { getCurrentWorkspaceOrThrow } from "@/lib/current-workspace-or-throw";
 import { prisma } from "@/lib/prisma";
 
 export const getDashboardData = async () => {
+  const workspace = await getCurrentWorkspaceOrThrow();
+
   const [
     openComments,
     inProgressComments,
@@ -12,28 +15,43 @@ export const getDashboardData = async () => {
     prisma.comment.count({
       where: {
         status: "OPEN",
+        project: {
+          workspaceId: workspace.id,
+        },
       },
     }),
 
     prisma.comment.count({
       where: {
         status: "IN_PROGRESS",
+        project: {
+          workspaceId: workspace.id,
+        },
       },
     }),
 
     prisma.comment.count({
       where: {
         status: "IN_REVIEW",
+        project: {
+          workspaceId: workspace.id,
+        },
       },
     }),
 
     prisma.comment.count({
       where: {
         status: "RESOLVED",
+        project: {
+          workspaceId: workspace.id,
+        },
       },
     }),
 
     prisma.project.findMany({
+      where: {
+        workspaceId: workspace.id,
+      },
       take: 5,
       orderBy: {
         updatedAt: "desc",
@@ -46,6 +64,9 @@ export const getDashboardData = async () => {
     }),
 
     prisma.activityLog.findMany({
+      where: {
+        workspaceId: workspace.id,
+      },
       take: 5,
       orderBy: {
         createdAt: "desc",
@@ -86,6 +107,8 @@ export const getDashboardData = async () => {
     );
 
   return {
+    workspace,
+
     metrics: {
       openComments,
       inProgressComments,
@@ -95,9 +118,7 @@ export const getDashboardData = async () => {
     },
 
     projects,
-
     recentActivity,
-
     needsAttention,
   };
 };

@@ -52,7 +52,6 @@ const DashboardHeader = ({ user }: DashboardHeaderProps) => {
 
         <UserMenu user={user} />
 
-        <LogoutButton />
       </div>
     </header>
   );
