@@ -1,4 +1,4 @@
-import {
+/* import {
   LayoutDashboard,
   FolderKanban,
   MessageSquare,
@@ -74,5 +74,31 @@ export const clientNavigation = [
     name: "Projects",
     href: "/client",
     icon: FolderKanban,
+  },
+]; */
+
+import {
+  LayoutDashboard,
+  FolderKanban,
+} from "lucide-react";
+
+export const adminNavigation = [
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Projects",
+    href: "/projects",
+    icon: FolderKanban,
+  },
+];
+
+export const clientNavigation = [
+  {
+    name: "Client Portal",
+    href: "/client",
+    icon: LayoutDashboard,
   },
 ];

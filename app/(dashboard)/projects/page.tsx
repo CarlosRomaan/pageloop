@@ -5,6 +5,7 @@ import { getProjects } from "@/features/projects/queries";
 
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { isCurrentUserClientOnly } from "@/lib/current-user-role";
 
 const ProjectsPage = async () => {
   const session = await auth();
@@ -12,7 +13,13 @@ const ProjectsPage = async () => {
   if (!session) {
     redirect("/login");
   }
-  
+
+  const isClientOnly = await isCurrentUserClientOnly();
+
+  if (isClientOnly) {
+    redirect("/client");
+  }
+
   const projects = await getProjects();
 
   return (

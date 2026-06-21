@@ -11,7 +11,23 @@ import ProjectsOverview from "@/components/dashboard/projects-overview";
 import RecentActivity from "@/components/dashboard/recent-activity";
 import { getDashboardData } from "@/features/dashboard/queries";
 
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { isCurrentUserClientOnly } from "@/lib/current-user-role";
+
 const DashboardPage = async () => {
+  const session = await auth();
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const isClientOnly = await isCurrentUserClientOnly();
+
+  if (isClientOnly) {
+    redirect("/client");
+  }
+
   const dashboardData = await getDashboardData();
 
   return (
