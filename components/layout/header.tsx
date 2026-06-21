@@ -1,9 +1,15 @@
-"use client";
-
 import { Bell, HelpCircle, Search } from "lucide-react";
 import LogoutButton from "../auth/logout-button";
+import UserMenu from "@/components/layout/user-menu";
 
-const DashboardHeader = () => {
+type DashboardHeaderProps = {
+  user: {
+    name?: string | null;
+    email?: string | null;
+  } | null;
+};
+
+const DashboardHeader = ({ user }: DashboardHeaderProps) => {
   return (
     <header className="sticky top-0 z-30 flex h-18 items-center justify-between bg-background/95 px-6 backdrop-blur">
       <div className="flex items-center gap-3">
@@ -44,9 +50,7 @@ const DashboardHeader = () => {
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
         </button>
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium">
-          SJ
-        </div>
+        <UserMenu user={user} />
 
         <LogoutButton />
       </div>

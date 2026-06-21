@@ -1,18 +1,20 @@
+import { auth } from "@/auth";
 import DashboardHeader from "@/components/layout/header";
 import DashboardSidebar from "@/components/layout/sidebar";
 
-const DashboardLayout = ({
+const DashboardLayout = async ({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) => {
+}) => {
+  const session = await auth();
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar />
 
       <div className="flex min-h-screen flex-1 flex-col">
         <div className="border-b">
-          <DashboardHeader />
+          <DashboardHeader user={session?.user ?? null} />
         </div>
 
         <main className="flex-1 p-6">
