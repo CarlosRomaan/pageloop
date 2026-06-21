@@ -20,6 +20,7 @@ import { getCurrentWorkspaceOrThrow } from "@/lib/current-workspace-or-throw";
 import type { ProjectRole } from "@prisma/client";
 import { createInviteToken } from "@/lib/invite-token";
 import { getCurrentUser } from "@/lib/current-user";
+import { sendProjectInviteEmail } from "@/features/emails/send-project-invite-email";
 
 export const updateProjectSettings = async ({
   projectId,
@@ -236,7 +237,7 @@ export const createProjectInvite = async ({
     return;
   }
 
-  await prisma.invite.create({
+  const invite = await prisma.invite.create({
     data: {
       workspaceId: project.workspaceId,
       projectId: project.id,
@@ -245,6 +246,14 @@ export const createProjectInvite = async ({
       token: createInviteToken(),
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
     },
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  await sendProjectInviteEmail({
+    email: cleanEmail,
+    projectName: project.name,
+    inviteUrl: `${appUrl}/accept-invite/${invite.token}`,
   });
 
   revalidatePath(`/projects/${projectSlug}/team`);
