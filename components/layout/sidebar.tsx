@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { navigation } from "@/lib/navigation";
+import {
+  adminNavigation,
+  clientNavigation,
+} from "@/lib/navigation";
 
 type DashboardSidebarProps = {
   user: {
@@ -19,6 +22,10 @@ const DashboardSidebar = ({ user }: DashboardSidebarProps) => {
   const email = user?.email ?? "";
   const initials = name.slice(0, 2).toUpperCase();
 
+  const navigationItems = pathname.startsWith("/client")
+    ? clientNavigation
+    : adminNavigation;
+
   return (
     <aside className="hidden w-64 border-r bg-background lg:flex lg:flex-col">
       <div className="border-b px-6 py-5">
@@ -33,7 +40,7 @@ const DashboardSidebar = ({ user }: DashboardSidebarProps) => {
 
       <nav className="flex-1 px-3 py-4">
         <ul className="space-y-1">
-          {navigation.map((item) => {
+          {navigationItems.map((item) => {
             const isActive =
               pathname === item.href ||
               pathname.startsWith(`${item.href}/`);

@@ -11,7 +11,7 @@ import {
   Settings,
 } from "lucide-react";
 
-export const navigation = [
+export const adminNavigation = [
   {
     name: "Dashboard",
     href: "/dashboard",
@@ -61,5 +61,18 @@ export const navigation = [
     name: "Settings",
     href: "/settings",
     icon: Settings,
+  },
+];
+
+export const clientNavigation = [
+  {
+    name: "Client Portal",
+    href: "/client",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Projects",
+    href: "/client",
+    icon: FolderKanban,
   },
 ];
