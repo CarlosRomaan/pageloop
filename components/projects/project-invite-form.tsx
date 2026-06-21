@@ -1,7 +1,6 @@
 "use client";
 
-import type { ProjectRole } from "@prisma/client";
-import { useTransition } from "react";
+import { useActionState } from "react";
 
 import { createProjectInvite } from "@/features/projects/actions";
 
@@ -10,29 +9,28 @@ type ProjectInviteFormProps = {
   projectSlug: string;
 };
 
+const initialState = {
+  success: false,
+  message: "",
+};
+
 const ProjectInviteForm = ({
   projectId,
   projectSlug,
 }: ProjectInviteFormProps) => {
-  const [isPending, startTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState(
+    createProjectInvite,
+    initialState
+  );
 
   return (
     <form
+      action={formAction}
       className="rounded-xl border bg-background p-5"
-      action={(formData) => {
-        const email = String(formData.get("email") ?? "");
-        const role = String(formData.get("role") ?? "CLIENT") as ProjectRole;
-
-        startTransition(() => {
-          createProjectInvite({
-            projectId,
-            projectSlug,
-            email,
-            role,
-          });
-        });
-      }}
     >
+      <input type="hidden" name="projectId" value={projectId} />
+      <input type="hidden" name="projectSlug" value={projectSlug} />
+
       <h2 className="font-semibold">Invite member</h2>
 
       <p className="mt-2 text-sm text-muted-foreground">
@@ -62,9 +60,19 @@ const ProjectInviteForm = ({
           disabled={isPending}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {isPending ? "Inviting..." : "Send invite"}
+          {isPending ? "Sending..." : "Send invite"}
         </button>
       </div>
+
+      {state.message ? (
+        <p
+          className={`mt-3 text-sm ${
+            state.success ? "text-green-600" : "text-destructive"
+          }`}
+        >
+          {state.message}
+        </p>
+      ) : null}
     </form>
   );
 };

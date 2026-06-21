@@ -213,50 +213,69 @@ export const createProject = async ({
   redirect(`/projects/${project.slug}`);
 };
 
-export const createProjectInvite = async ({
-  projectId,
-  projectSlug,
-  email,
-  role,
-}: {
-  projectId: string;
-  projectSlug: string;
-  email: string;
-  role: ProjectRole;
-}) => {
-  const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
-  const member = await getCurrentProjectMemberOrThrow(project.id);
+export const createProjectInvite = async (
+  _previousState: {
+    success: boolean;
+    message: string;
+  },
+  formData: FormData
+) => {
+  const projectId = String(formData.get("projectId") ?? "");
+  const projectSlug = String(formData.get("projectSlug") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const role = String(formData.get("role") ?? "CLIENT") as ProjectRole;
 
-  if (!canManageProject(member.role)) {
-    return;
+  if (!email) {
+    return {
+      success: false,
+      message: "Email is required.",
+    };
   }
 
-  const cleanEmail = email.trim().toLowerCase();
+  try {
+    const project = await getProjectForCurrentWorkspaceOrThrow(projectId);
+    const member = await getCurrentProjectMemberOrThrow(project.id);
 
-  if (!cleanEmail) {
-    return;
+    if (!canManageProject(member.role)) {
+      return {
+        success: false,
+        message: "You do not have permission to invite members.",
+      };
+    }
+
+    const invite = await prisma.invite.create({
+      data: {
+        workspaceId: project.workspaceId,
+        projectId: project.id,
+        email,
+        projectRole: role,
+        token: createInviteToken(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+    });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+    await sendProjectInviteEmail({
+      email,
+      projectName: project.name,
+      inviteUrl: `${appUrl}/accept-invite/${invite.token}`,
+    });
+
+    revalidatePath(`/projects/${projectSlug}/team`);
+
+    return {
+      success: true,
+      message: "Invitation sent.",
+    };
+  } catch (error) {
+    console.error("[CREATE_PROJECT_INVITE]", error);
+
+    return {
+      success: false,
+      message: "Could not send invitation.",
+    };
   }
-
-  const invite = await prisma.invite.create({
-    data: {
-      workspaceId: project.workspaceId,
-      projectId: project.id,
-      email: cleanEmail,
-      projectRole: role,
-      token: createInviteToken(),
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-    },
-  });
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-  await sendProjectInviteEmail({
-    email: cleanEmail,
-    projectName: project.name,
-    inviteUrl: `${appUrl}/accept-invite/${invite.token}`,
-  });
-
-  revalidatePath(`/projects/${projectSlug}/team`);
 };
 
 export const acceptProjectInvite = async ({
