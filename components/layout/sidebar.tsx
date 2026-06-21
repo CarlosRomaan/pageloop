@@ -2,25 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import { navigation } from "@/lib/navigation";
 
-const DashboardSidebar = () => {
+type DashboardSidebarProps = {
+  user: {
+    name?: string | null;
+    email?: string | null;
+  } | null;
+};
+
+const DashboardSidebar = ({ user }: DashboardSidebarProps) => {
   const pathname = usePathname();
+
+  const name = user?.name ?? "User";
+  const email = user?.email ?? "";
+  const initials = name.slice(0, 2).toUpperCase();
 
   return (
     <aside className="hidden w-64 border-r bg-background lg:flex lg:flex-col">
       <div className="border-b px-6 py-5">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-3"
-        >
+        <Link href="/dashboard" className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             P
           </div>
 
-          <span className="text-lg font-semibold">
-            PageLoop
-          </span>
+          <span className="text-lg font-semibold">PageLoop</span>
         </Link>
       </div>
 
@@ -44,7 +51,6 @@ const DashboardSidebar = () => {
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-
                   <span>{item.name}</span>
                 </Link>
               </li>
@@ -56,16 +62,13 @@ const DashboardSidebar = () => {
       <div className="border-t p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted font-medium">
-            SJ
+            {initials}
           </div>
 
-          <div>
-            <p className="text-sm font-medium">
-              Sarah Johnson
-            </p>
-
-            <p className="text-xs text-muted-foreground">
-              Owner
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {email}
             </p>
           </div>
         </div>

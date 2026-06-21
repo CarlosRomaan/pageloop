@@ -10,7 +10,7 @@ const DashboardLayout = async ({
   const session = await auth();
   return (
     <div className="flex min-h-screen bg-background">
-      <DashboardSidebar />
+      <DashboardSidebar user={session?.user ?? null} />
 
       <div className="flex min-h-screen flex-1 flex-col">
         <div className="border-b">
