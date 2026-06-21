@@ -7,6 +7,10 @@ import { prisma } from "@/lib/prisma";
 
 import { getCurrentUser } from "@/lib/current-user";
 
+import { sendCommentAssignedEmail } from "@/features/emails/send-comment-assigned-email";
+import { sendCommentReplyEmail } from "@/features/emails/send-comment-reply-email";
+import { sendCommentStatusEmail } from "@/features/emails/send-comment-status-email";
+
 export const updateCommentStatus = async ({
   commentId,
   projectSlug,
@@ -16,6 +20,18 @@ export const updateCommentStatus = async ({
   projectSlug: string;
   status: CommentStatus;
 }) => {
+  const currentUser = await getCurrentUser();
+
+  const existingComment = await prisma.comment.findUnique({
+    where: {
+      id: commentId,
+    },
+  });
+
+  if (!existingComment) {
+    return;
+  }
+
   const comment = await prisma.comment.update({
     where: {
       id: commentId,
@@ -24,16 +40,49 @@ export const updateCommentStatus = async ({
       status,
       resolvedAt: status === "RESOLVED" ? new Date() : null,
     },
+    include: {
+      project: true,
+      author: true,
+      assignee: true,
+    },
   });
 
   await prisma.commentStatusHistory.create({
     data: {
       commentId,
-      changedById: comment.authorId,
-      fromStatus: comment.status,
+      changedById: currentUser?.id ?? existingComment.authorId,
+      fromStatus: existingComment.status,
       toStatus: status,
     },
   });
+
+  if (status === "IN_REVIEW" || status === "RESOLVED") {
+    const recipients = [comment.author, comment.assignee].filter(
+      (
+        recipient,
+        index,
+        array
+      ): recipient is NonNullable<typeof recipient> =>
+        !!recipient?.email &&
+        recipient.id !== currentUser?.id &&
+        array.findIndex((item) => item?.id === recipient.id) === index
+    );
+
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+    await Promise.all(
+      recipients.map((recipient) =>
+        sendCommentStatusEmail({
+          email: recipient.email,
+          projectName: comment.project.name,
+          commentNumber: comment.number,
+          status,
+          commentUrl: `${appUrl}/projects/${projectSlug}/comments/${commentId}`,
+        })
+      )
+    );
+  }
 
   revalidatePath(`/projects/${projectSlug}/comments`);
   revalidatePath(`/projects/${projectSlug}/comments/${commentId}`);
@@ -48,14 +97,31 @@ export const assignComment = async ({
   projectSlug: string;
   assigneeId: string | null;
 }) => {
-  await prisma.comment.update({
+  const comment = await prisma.comment.update({
     where: {
       id: commentId,
     },
     data: {
       assigneeId,
     },
+    include: {
+      project: true,
+      assignee: true,
+    },
   });
+
+  if (comment.assignee?.email) {
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+    await sendCommentAssignedEmail({
+      email: comment.assignee.email,
+      projectName: comment.project.name,
+      commentNumber: comment.number,
+      commentMessage: comment.message,
+      commentUrl: `${appUrl}/projects/${projectSlug}/comments/${comment.id}`,
+    });
+  }
 
   revalidatePath(`/projects/${projectSlug}/comments`);
   revalidatePath(`/projects/${projectSlug}/comments/${commentId}`);
@@ -76,13 +142,50 @@ export const createCommentReply = async ({
     return;
   }
 
-  await prisma.commentReply.create({
+  const reply = await prisma.commentReply.create({
     data: {
       commentId,
       authorId,
-      message,
+      message: message.trim(),
+    },
+    include: {
+      comment: {
+        include: {
+          project: true,
+          author: true,
+          assignee: true,
+        },
+      },
     },
   });
+
+  const recipients = [
+    reply.comment.author,
+    reply.comment.assignee,
+  ].filter(
+    (
+      recipient,
+      index,
+      array
+    ): recipient is NonNullable<typeof recipient> =>
+      !!recipient?.email &&
+      recipient.id !== authorId &&
+      array.findIndex((item) => item?.id === recipient.id) === index
+  );
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  await Promise.all(
+    recipients.map((recipient) =>
+      sendCommentReplyEmail({
+        email: recipient.email,
+        projectName: reply.comment.project.name,
+        commentNumber: reply.comment.number,
+        replyMessage: reply.message,
+        commentUrl: `${appUrl}/projects/${projectSlug}/comments/${commentId}`,
+      })
+    )
+  );
 
   revalidatePath(`/projects/${projectSlug}/comments`);
   revalidatePath(`/projects/${projectSlug}/comments/${commentId}`);
@@ -105,13 +208,50 @@ export const createAuthenticatedCommentReply = async ({
     return;
   }
 
-  await prisma.commentReply.create({
+  const reply = await prisma.commentReply.create({
     data: {
       commentId,
       authorId: user.id,
       message: message.trim(),
     },
+    include: {
+      comment: {
+        include: {
+          project: true,
+          author: true,
+          assignee: true,
+        },
+      },
+    },
   });
+
+  const recipients = [
+    reply.comment.author,
+    reply.comment.assignee,
+  ].filter(
+    (
+      recipient,
+      index,
+      array
+    ): recipient is NonNullable<typeof recipient> =>
+      !!recipient?.email &&
+      recipient.id !== user.id &&
+      array.findIndex((item) => item?.id === recipient.id) === index
+  );
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  await Promise.all(
+    recipients.map((recipient) =>
+      sendCommentReplyEmail({
+        email: recipient.email,
+        projectName: reply.comment.project.name,
+        commentNumber: reply.comment.number,
+        replyMessage: reply.message,
+        commentUrl: `${appUrl}/${redirectBase}/${projectSlug}/comments/${commentId}`,
+      })
+    )
+  );
 
   revalidatePath(`/${redirectBase}/${projectSlug}/comments/${commentId}`);
 };
@@ -148,24 +288,29 @@ export const updateClientCommentStatus = async ({
     return;
   }
 
-  const comment = await prisma.comment.findFirst({
+  const existingComment = await prisma.comment.findFirst({
     where: {
       id: commentId,
       projectId: membership.projectId,
     },
   });
 
-  if (!comment) {
+  if (!existingComment) {
     return;
   }
 
-  await prisma.comment.update({
+  const comment = await prisma.comment.update({
     where: {
-      id: comment.id,
+      id: existingComment.id,
     },
     data: {
       status,
       resolvedAt: status === "RESOLVED" ? new Date() : null,
+    },
+    include: {
+      project: true,
+      author: true,
+      assignee: true,
     },
   });
 
@@ -173,7 +318,7 @@ export const updateClientCommentStatus = async ({
     data: {
       commentId: comment.id,
       changedById: user.id,
-      fromStatus: comment.status,
+      fromStatus: existingComment.status,
       toStatus: status,
     },
   });
@@ -187,6 +332,32 @@ export const updateClientCommentStatus = async ({
       message: `Client moved comment #${comment.number} to ${status}.`,
     },
   });
+
+  const recipients = [comment.author, comment.assignee].filter(
+    (
+      recipient,
+      index,
+      array
+    ): recipient is NonNullable<typeof recipient> =>
+      !!recipient?.email &&
+      recipient.id !== user.id &&
+      array.findIndex((item) => item?.id === recipient.id) === index
+  );
+
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  await Promise.all(
+    recipients.map((recipient) =>
+      sendCommentStatusEmail({
+        email: recipient.email,
+        projectName: comment.project.name,
+        commentNumber: comment.number,
+        status,
+        commentUrl: `${appUrl}/client/projects/${projectSlug}/comments/${commentId}`,
+      })
+    )
+  );
 
   revalidatePath(`/client/projects/${projectSlug}`);
   revalidatePath(`/client/projects/${projectSlug}/comments/${commentId}`);
