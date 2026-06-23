@@ -9,14 +9,19 @@ import {
   Plug,
   CreditCard,
   Settings,
-  History
+  History,
 } from "lucide-react";
-/*
+
 export const adminNavigation = [
   {
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    name: "Activity",
+    href: "/activity",
+    icon: History,
   },
   {
     name: "Projects",
@@ -63,42 +68,6 @@ export const adminNavigation = [
     href: "/settings",
     icon: Settings,
   },
-];
-
-export const clientNavigation = [
-  {
-    name: "Client Portal",
-    href: "/client",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Projects",
-    href: "/client",
-    icon: FolderKanban,
-  },
-]; */
-
-export const adminNavigation = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Activity",
-    href: "/activity",
-    icon: History,
-  },
-  {
-    name: "Projects",
-    href: "/projects",
-    icon: FolderKanban,
-  },
-  {
-    name: "Settings",
-    href: "/settings",
-    icon: Settings,
-  }
 ];
 
 export const clientNavigation = [
