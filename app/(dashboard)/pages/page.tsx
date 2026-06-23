@@ -6,9 +6,36 @@ import {
 } from "lucide-react";
 
 import { getWorkspacePages } from "@/features/pages/queries";
+import type { WorkspacePagesFilter } from "@/features/pages/queries";
 
-const PagesPage = async () => {
-  const pages = await getWorkspacePages();
+type PagesPageProps = {
+  searchParams: Promise<{
+    filter?: string;
+  }>;
+};
+
+const validFilters: WorkspacePagesFilter[] = [
+  "active",
+  "archived",
+  "with-comments",
+];
+
+const filterLabels = {
+  active: "Active",
+  archived: "Archived",
+  "with-comments": "With comments",
+};
+
+const PagesPage = async ({ searchParams }: PagesPageProps) => {
+  const { filter } = await searchParams;
+
+  const selectedFilter = validFilters.includes(
+    filter as WorkspacePagesFilter
+  )
+    ? (filter as WorkspacePagesFilter)
+    : undefined;
+
+  const pages = await getWorkspacePages(selectedFilter);
 
   const totalPages = pages.length;
 
@@ -33,6 +60,31 @@ const PagesPage = async () => {
         <p className="mt-2 text-muted-foreground">
           Pages detected across all workspace projects.
         </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/pages"
+            className={`rounded-lg border px-3 py-2 text-sm ${!selectedFilter
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted"
+              }`}
+          >
+            All
+          </Link>
+
+          {validFilters.map((filter) => (
+            <Link
+              key={filter}
+              href={`/pages?filter=${filter}`}
+              className={`rounded-lg border px-3 py-2 text-sm ${selectedFilter === filter
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
+                }`}
+            >
+              {filterLabels[filter]}
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
