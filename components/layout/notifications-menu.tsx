@@ -1,7 +1,26 @@
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import {
+  Bell,
+  CheckCircle2,
+  FolderKanban,
+  Globe,
+  MessageSquare,
+  UserPlus,
+} from "lucide-react";
 
 import { getNotificationItems } from "@/features/notifications/queries";
+
+const notificationIcons = {
+  PROJECT_CREATED: FolderKanban,
+  PROJECT_UPDATED: FolderKanban,
+  DOMAIN_ADDED: Globe,
+  COMMENT_CREATED: MessageSquare,
+  COMMENT_ASSIGNED: MessageSquare,
+  COMMENT_STATUS_CHANGED: CheckCircle2,
+  COMMENT_REPLIED: MessageSquare,
+  INVITE_SENT: UserPlus,
+  INVITE_ACCEPTED: UserPlus,
+} as const;
 
 const NotificationsMenu = async () => {
   const notifications = await getNotificationItems();
@@ -9,8 +28,12 @@ const NotificationsMenu = async () => {
   return (
     <div className="relative">
       <details className="group">
-        <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+        <summary className="relative flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
           <Bell className="h-4 w-4" />
+
+          {notifications.length > 0 ? (
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+          ) : null}
         </summary>
 
         <div className="absolute right-0 z-50 mt-2 w-96 overflow-hidden rounded-xl border bg-background shadow-xl">
@@ -28,26 +51,42 @@ const NotificationsMenu = async () => {
               </div>
             ) : (
               <div className="divide-y">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="p-4">
-                    <p className="text-sm font-medium">
-                      {notification.message ?? "Activity recorded"}
-                    </p>
+                {notifications.map((notification) => {
+                  const Icon =
+                    notificationIcons[
+                      notification.type as keyof typeof notificationIcons
+                    ] ?? MessageSquare;
 
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {notification.actor?.name ??
-                        notification.actor?.email ??
-                        "System"}
-                      {notification.project
-                        ? ` • ${notification.project.name}`
-                        : ""}
-                    </p>
+                  return (
+                    <div
+                      key={notification.id}
+                      className="flex items-start gap-3 p-4"
+                    >
+                      <div className="rounded-full border p-2">
+                        <Icon className="h-4 w-4" />
+                      </div>
 
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {notification.createdAt.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">
+                          {notification.message ?? "Activity recorded"}
+                        </p>
+
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {notification.actor?.name ??
+                            notification.actor?.email ??
+                            "System"}
+                          {notification.project
+                            ? ` • ${notification.project.name}`
+                            : ""}
+                        </p>
+
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {notification.createdAt.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
