@@ -1,6 +1,6 @@
-import { Bell, HelpCircle, Search } from "lucide-react";
-import LogoutButton from "../auth/logout-button";
+import { Bell, HelpCircle, } from "lucide-react";
 import UserMenu from "@/components/layout/user-menu";
+import GlobalSearch from "@/components/layout/global-search";
 
 type DashboardHeaderProps = {
   user: {
@@ -25,13 +25,8 @@ const DashboardHeader = ({ user }: DashboardHeaderProps) => {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="hidden h-10 w-72 items-center gap-2 rounded-lg border bg-background px-3 text-sm text-muted-foreground md:flex">
-          <Search className="h-4 w-4" />
-          <span>Search anything...</span>
-
-          <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 text-[10px]">
-            ⌘ K
-          </kbd>
+        <div className="hidden md:block">
+          <GlobalSearch />
         </div>
 
         <button
