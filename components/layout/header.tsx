@@ -1,6 +1,7 @@
 import { Bell, HelpCircle, } from "lucide-react";
 import UserMenu from "@/components/layout/user-menu";
 import GlobalSearch from "@/components/layout/global-search";
+import NotificationsMenu from "@/components/layout/notifications-menu";
 
 type DashboardHeaderProps = {
   user: {
@@ -36,14 +37,7 @@ const DashboardHeader = ({ user }: DashboardHeaderProps) => {
           <HelpCircle className="h-4 w-4" />
         </button>
 
-        <button
-          type="button"
-          className="relative flex h-10 w-10 items-center justify-center rounded-lg border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <Bell className="h-4 w-4" />
-
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-        </button>
+        <NotificationsMenu />
 
         <UserMenu user={user} />
 
