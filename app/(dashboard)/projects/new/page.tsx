@@ -1,8 +1,4 @@
-import { notFound } from "next/navigation";
-
 import CreateProjectForm from "@/components/projects/create-project-form";
-import { getDefaultWorkspace } from "@/features/workspaces/queries";
-
 
 const NewProjectPage = async () => {
   return (

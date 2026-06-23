@@ -1,4 +1,24 @@
+import {
+  CheckCircle2,
+  FolderKanban,
+  Globe,
+  MessageSquare,
+  UserPlus,
+} from "lucide-react";
+
 import type { RecentActivityProps } from "@/types/dashboard";
+
+const activityIcons = {
+  PROJECT_CREATED: FolderKanban,
+  PROJECT_UPDATED: FolderKanban,
+  DOMAIN_ADDED: Globe,
+  COMMENT_CREATED: MessageSquare,
+  COMMENT_ASSIGNED: MessageSquare,
+  COMMENT_STATUS_CHANGED: CheckCircle2,
+  COMMENT_REPLIED: MessageSquare,
+  INVITE_SENT: UserPlus,
+  INVITE_ACCEPTED: UserPlus,
+} as const;
 
 const RecentActivity = ({ activities }: RecentActivityProps) => {
   return (
@@ -11,38 +31,61 @@ const RecentActivity = ({ activities }: RecentActivityProps) => {
         </button>
       </div>
 
-      <div className="space-y-4">
-        {activities.map((activity) => (
-          <div
-            key={activity.id}
-            className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-          >
-            <div>
-              <p className="text-sm">
-                {activity.message ?? "Activity recorded"}
-              </p>
+      {activities.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            No activity yet.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {activities.map((activity) => {
+            const Icon =
+              activityIcons[
+                activity.type as keyof typeof activityIcons
+              ] ?? MessageSquare;
 
-              {activity.actor ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  by {activity.actor.name}
-                </p>
-              ) : null}
-            </div>
+            return (
+              <div
+                key={activity.id}
+                className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0"
+              >
+                <div className="rounded-full border p-2">
+                  <Icon className="h-4 w-4" />
+                </div>
 
-            <span className="text-sm text-muted-foreground">
-              {new Intl.RelativeTimeFormat("en", {
-                numeric: "auto",
-              }).format(
-                Math.round(
-                  (activity.createdAt.getTime() - Date.now()) /
-                    (1000 * 60 * 60 * 24)
-                ),
-                "day"
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    {activity.message ?? "Activity recorded"}
+                  </p>
+
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    {activity.actor ? (
+                      <span>
+                        {activity.actor.name ??
+                          activity.actor.email}
+                      </span>
+                    ) : (
+                      <span>System</span>
+                    )}
+
+                    {activity.project ? (
+                      <>
+                        <span>•</span>
+                        <span>{activity.project.name}</span>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {activity.createdAt.toLocaleDateString()}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

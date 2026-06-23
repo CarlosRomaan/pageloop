@@ -1,26 +1,23 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+import type { ProjectRole } from "@prisma/client";
+
+import { sendProjectInviteEmail } from "@/features/emails/send-project-invite-email";
+import { createActivityLog } from "@/lib/activity-log";
+import { getCurrentUser } from "@/lib/current-user";
+import { getCurrentWorkspaceOrThrow } from "@/lib/current-workspace-or-throw";
+import { createInviteToken } from "@/lib/invite-token";
+import { getProjectForCurrentWorkspaceOrThrow } from "@/lib/project-access";
+import { createWidgetPublicKey, createWidgetSecretKey } from "@/lib/project-keys";
 import {
   canManageProject,
   getCurrentProjectMemberOrThrow,
 } from "@/lib/project-permissions";
-import { redirect } from "next/navigation";
-
-import {
-  createWidgetPublicKey,
-  createWidgetSecretKey,
-} from "@/lib/project-keys";
-import { createSlug } from "@/lib/slug";
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-
-import { getProjectForCurrentWorkspaceOrThrow } from "@/lib/project-access";
-import { getCurrentWorkspaceOrThrow } from "@/lib/current-workspace-or-throw";
-
-import type { ProjectRole } from "@prisma/client";
-import { createInviteToken } from "@/lib/invite-token";
-import { getCurrentUser } from "@/lib/current-user";
-import { sendProjectInviteEmail } from "@/features/emails/send-project-invite-email";
+import { createSlug } from "@/lib/slug";
 
 export const updateProjectSettings = async ({
   projectId,
@@ -54,6 +51,19 @@ export const updateProjectSettings = async ({
     },
   });
 
+  await createActivityLog({
+    workspaceId: project.workspaceId,
+    projectId: project.id,
+    actorId: member.userId,
+    type: "PROJECT_UPDATED",
+    message: `Updated project ${name.trim()}.`,
+    metadata: {
+      projectId: project.id,
+      name: name.trim(),
+      description: description?.trim() || null,
+    },
+  });
+
   revalidatePath(`/projects/${projectSlug}`);
   revalidatePath(`/projects/${projectSlug}/settings`);
 };
@@ -73,14 +83,30 @@ export const toggleProjectArchiveStatus = async ({
   }
 
   const isArchived = project.status === "ARCHIVED";
+  const nextStatus = isArchived ? "ACTIVE" : "ARCHIVED";
 
   await prisma.project.update({
     where: {
       id: project.id,
     },
     data: {
-      status: isArchived ? "ACTIVE" : "ARCHIVED",
+      status: nextStatus,
       archivedAt: isArchived ? null : new Date(),
+    },
+  });
+
+  await createActivityLog({
+    workspaceId: project.workspaceId,
+    projectId: project.id,
+    actorId: member.userId,
+    type: "PROJECT_UPDATED",
+    message: isArchived
+      ? `Restored project ${project.name}.`
+      : `Archived project ${project.name}.`,
+    metadata: {
+      projectId: project.id,
+      fromStatus: project.status,
+      toStatus: nextStatus,
     },
   });
 
@@ -114,11 +140,24 @@ export const addProjectDomain = async ({
     return;
   }
 
-  await prisma.projectDomain.create({
+  const projectDomain = await prisma.projectDomain.create({
     data: {
       projectId: project.id,
       domain: cleanDomain,
       isVerified: false,
+    },
+  });
+
+  await createActivityLog({
+    workspaceId: project.workspaceId,
+    projectId: project.id,
+    actorId: member.userId,
+    type: "DOMAIN_ADDED",
+    message: `Added domain ${cleanDomain}.`,
+    metadata: {
+      projectId: project.id,
+      domainId: projectDomain.id,
+      domain: cleanDomain,
     },
   });
 
@@ -163,6 +202,19 @@ export const removeProjectDomain = async ({
     },
   });
 
+  await createActivityLog({
+    workspaceId: domain.project.workspaceId,
+    projectId: domain.project.id,
+    actorId: member.userId,
+    type: "PROJECT_UPDATED",
+    message: `Removed domain ${domain.domain}.`,
+    metadata: {
+      projectId: domain.project.id,
+      domainId: domain.id,
+      domain: domain.domain,
+    },
+  });
+
   revalidatePath(`/projects/${projectSlug}/settings`);
   revalidatePath(`/projects/${projectSlug}/installation`);
 };
@@ -177,6 +229,7 @@ export const createProject = async ({
   domain: string;
 }) => {
   const workspace = await getCurrentWorkspaceOrThrow();
+  const user = await getCurrentUser();
 
   const cleanName = name.trim();
   const cleanDomain = domain
@@ -204,6 +257,35 @@ export const createProject = async ({
           isVerified: false,
         },
       },
+    },
+  });
+
+  await prisma.projectMember.upsert({
+    where: {
+      projectId_userId: {
+        projectId: project.id,
+        userId: user?.id ?? "",
+      },
+    },
+    create: {
+      projectId: project.id,
+      userId: user?.id ?? "",
+      role: "ADMIN",
+    },
+    update: {},
+  }).catch(async () => {
+    // If the project member already exists or user is unavailable, continue.
+  });
+
+  await createActivityLog({
+    workspaceId: workspace.id,
+    projectId: project.id,
+    actorId: user?.id ?? null,
+    type: "PROJECT_CREATED",
+    message: `Created project ${project.name}.`,
+    metadata: {
+      projectId: project.id,
+      domain: cleanDomain,
     },
   });
 
@@ -260,6 +342,19 @@ export const createProjectInvite = async (
       email,
       projectName: project.name,
       inviteUrl: `${appUrl}/accept-invite/${invite.token}`,
+    });
+
+    await createActivityLog({
+      workspaceId: project.workspaceId,
+      projectId: project.id,
+      actorId: member.userId,
+      type: "INVITE_SENT",
+      message: `Invited ${email} as ${role}.`,
+      metadata: {
+        inviteId: invite.id,
+        email,
+        projectRole: role,
+      },
     });
 
     revalidatePath(`/projects/${projectSlug}/team`);
@@ -342,6 +437,20 @@ export const acceptProjectInvite = async ({
     },
     data: {
       acceptedAt: new Date(),
+    },
+  });
+
+  await createActivityLog({
+    workspaceId: invite.workspaceId,
+    projectId: invite.projectId,
+    actorId: user.id,
+    type: "INVITE_ACCEPTED",
+    message: `${user.name ?? user.email} accepted an invitation.`,
+    metadata: {
+      inviteId: invite.id,
+      email: invite.email,
+      projectRole: invite.projectRole,
+      workspaceRole: invite.workspaceRole,
     },
   });
 

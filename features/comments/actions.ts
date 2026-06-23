@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 
 import type { CommentStatus } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-
-import { getCurrentUser } from "@/lib/current-user";
 
 import { sendCommentAssignedEmail } from "@/features/emails/send-comment-assigned-email";
 import { sendCommentReplyEmail } from "@/features/emails/send-comment-reply-email";
 import { sendCommentStatusEmail } from "@/features/emails/send-comment-status-email";
+import { createActivityLog } from "@/lib/activity-log";
+import { getCurrentUser } from "@/lib/current-user";
+import { prisma } from "@/lib/prisma";
 
 export const updateCommentStatus = async ({
   commentId,
@@ -51,6 +51,19 @@ export const updateCommentStatus = async ({
     data: {
       commentId,
       changedById: currentUser?.id ?? existingComment.authorId,
+      fromStatus: existingComment.status,
+      toStatus: status,
+    },
+  });
+
+  await createActivityLog({
+    workspaceId: comment.project.workspaceId,
+    projectId: comment.projectId,
+    actorId: currentUser?.id ?? existingComment.authorId,
+    type: "COMMENT_STATUS_CHANGED",
+    message: `Comment #${comment.number} moved to ${status}.`,
+    metadata: {
+      commentId: comment.id,
       fromStatus: existingComment.status,
       toStatus: status,
     },
@@ -110,6 +123,22 @@ export const assignComment = async ({
     },
   });
 
+  await createActivityLog({
+    workspaceId: comment.project.workspaceId,
+    projectId: comment.projectId,
+    actorId: null,
+    type: "COMMENT_ASSIGNED",
+    message: comment.assignee
+      ? `Comment #${comment.number} assigned to ${
+          comment.assignee.name ?? comment.assignee.email
+        }.`
+      : `Comment #${comment.number} unassigned.`,
+    metadata: {
+      commentId: comment.id,
+      assigneeId: comment.assigneeId,
+    },
+  });
+
   if (comment.assignee?.email) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -156,6 +185,18 @@ export const createCommentReply = async ({
           assignee: true,
         },
       },
+    },
+  });
+
+  await createActivityLog({
+    workspaceId: reply.comment.project.workspaceId,
+    projectId: reply.comment.projectId,
+    actorId: authorId,
+    type: "COMMENT_REPLIED",
+    message: `Replied to comment #${reply.comment.number}.`,
+    metadata: {
+      commentId: reply.comment.id,
+      replyId: reply.id,
     },
   });
 
@@ -222,6 +263,18 @@ export const createAuthenticatedCommentReply = async ({
           assignee: true,
         },
       },
+    },
+  });
+
+  await createActivityLog({
+    workspaceId: reply.comment.project.workspaceId,
+    projectId: reply.comment.projectId,
+    actorId: user.id,
+    type: "COMMENT_REPLIED",
+    message: `Replied to comment #${reply.comment.number}.`,
+    metadata: {
+      commentId: reply.comment.id,
+      replyId: reply.id,
     },
   });
 
@@ -323,13 +376,16 @@ export const updateClientCommentStatus = async ({
     },
   });
 
-  await prisma.activityLog.create({
-    data: {
-      workspaceId: membership.project.workspaceId,
-      projectId: membership.projectId,
-      actorId: user.id,
-      type: "COMMENT_STATUS_CHANGED",
-      message: `Client moved comment #${comment.number} to ${status}.`,
+  await createActivityLog({
+    workspaceId: membership.project.workspaceId,
+    projectId: membership.projectId,
+    actorId: user.id,
+    type: "COMMENT_STATUS_CHANGED",
+    message: `Client moved comment #${comment.number} to ${status}.`,
+    metadata: {
+      commentId: comment.id,
+      fromStatus: existingComment.status,
+      toStatus: status,
     },
   });
 

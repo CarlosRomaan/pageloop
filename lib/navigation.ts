@@ -1,4 +1,4 @@
-/* import {
+import {
   LayoutDashboard,
   FolderKanban,
   MessageSquare,
@@ -9,8 +9,9 @@
   Plug,
   CreditCard,
   Settings,
+  History
 } from "lucide-react";
-
+/*
 export const adminNavigation = [
   {
     name: "Dashboard",
@@ -77,11 +78,6 @@ export const clientNavigation = [
   },
 ]; */
 
-import {
-  LayoutDashboard,
-  FolderKanban,
-} from "lucide-react";
-
 export const adminNavigation = [
   {
     name: "Dashboard",
@@ -89,10 +85,20 @@ export const adminNavigation = [
     icon: LayoutDashboard,
   },
   {
+    name: "Activity",
+    href: "/activity",
+    icon: History,
+  },
+  {
     name: "Projects",
     href: "/projects",
     icon: FolderKanban,
   },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+  }
 ];
 
 export const clientNavigation = [
@@ -101,4 +107,9 @@ export const clientNavigation = [
     href: "/client",
     icon: LayoutDashboard,
   },
+  {
+    name: "Activity",
+    href: "/activity",
+    icon: History,
+  }
 ];
